@@ -7,7 +7,6 @@
     "deploy": "node deploy-commands.js"
   },
   "dependencies": {
-    "discord.js": "^14.0.0",
-    "node-fetch": "^2.6.7"
+    "discord.js": "^14.0.0"
   }
 }
