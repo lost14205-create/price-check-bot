@@ -24,7 +24,10 @@ client.on('messageCreate', async (message) => {
     if (data.error) {
       message.reply("Item not found");
     } else {
-      message.reply(`${data.item} price is ${data.price}`);
+      // ✅ UPDATED RESPONSE
+      message.reply(
+        `${data.item} price range is ${data.min} - ${data.max} (last updated: ${data.lastUpdate})`
+      );
     }
   } catch (err) {
     console.error(err);
