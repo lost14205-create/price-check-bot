@@ -3,7 +3,7 @@ const {
   GatewayIntentBits 
 } = require('discord.js');
 
-const res = await fetch(...)
+const fetch = require('node-fetch');
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
