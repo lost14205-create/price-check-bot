@@ -8,7 +8,7 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 const commands = [
   new SlashCommandBuilder()
-    .setName('p') // 👈 your command
+    .setName('p')
     .setDescription('Get item price')
     .addStringOption(option =>
       option
