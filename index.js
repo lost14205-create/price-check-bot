@@ -1,37 +1,68 @@
-const { Client, GatewayIntentBits } = require('discord.js');
-const fetch = require('node-fetch');
+const { 
+  Client, 
+  GatewayIntentBits 
+} = require('discord.js');
+
+const fetch = require('node-fetch'); // remove if Node 18+
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+  intents: [GatewayIntentBits.Guilds]
 });
 
 const TOKEN = process.env.TOKEN;
 const API_URL = process.env.API_URL;
 
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
+client.on('interactionCreate', async (interaction) => {
 
-  const item = message.content.trim();
+  // ✅ AUTOCOMPLETE
+  if (interaction.isAutocomplete()) {
+    const focusedValue = interaction.options.getFocused().toLowerCase();
 
-  try {
-    const res = await fetch(`${API_URL}?item=${encodeURIComponent(item)}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`${API_URL}?q=${encodeURIComponent(focusedValue)}`);
+      const data = await res.json();
 
-    if (data.error) {
-      message.reply("Item not found");
-    } else {
-      // ✅ UPDATED RESPONSE
-      message.reply(
+      const choices = data
+        .map(item => item.item)
+        .slice(0, 25);
+
+      await interaction.respond(
+        choices.map(choice => ({ name: choice, value: choice }))
+      );
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // ✅ SLASH COMMAND
+  if (!interaction.isChatInputCommand()) return;
+
+  if (interaction.commandName === 'p') {
+    const item = interaction.options.getString('item');
+
+    try {
+      const res = await fetch(`${API_URL}?item=${encodeURIComponent(item)}`);
+      const data = await res.json();
+
+      if (data.error) {
+        return interaction.reply({
+          content: "Item not found",
+          ephemeral: true
+        });
+      }
+
+      return interaction.reply(
         `${data.item} price range is ${data.min} - ${data.max} (last updated: ${data.lastUpdate})`
       );
+
+    } catch (err) {
+      console.error(err);
+      interaction.reply({
+        content: "Error contacting API",
+        ephemeral: true
+      });
     }
-  } catch (err) {
-    console.error(err);
-    message.reply("Error contacting API");
   }
 });
 
