@@ -3,7 +3,7 @@ const {
   GatewayIntentBits 
 } = require('discord.js');
 
-const fetch = require('node-fetch'); // remove if Node 18+
+const res = await fetch(...)
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
