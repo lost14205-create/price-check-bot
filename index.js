@@ -20,18 +20,32 @@ client.on('interactionCreate', async (interaction) => {
 
     try {
       const res = await fetch(`${API_URL}?q=${encodeURIComponent(focusedValue)}`);
-      const data = await res.json();
+      const text = await res.text();
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Autocomplete did not return JSON:", text);
+        return interaction.respond([]);
+      }
+
+      if (!Array.isArray(data)) {
+        console.error("Autocomplete returned non-array:", data);
+        return interaction.respond([]);
+      }
 
       const choices = data
         .map(item => item.item)
         .slice(0, 25);
 
-      await interaction.respond(
+      return interaction.respond(
         choices.map(choice => ({ name: choice, value: choice }))
       );
 
     } catch (err) {
       console.error(err);
+      return interaction.respond([]);
     }
   }
 
