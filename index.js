@@ -1,6 +1,6 @@
-const { 
-  Client, 
-  GatewayIntentBits 
+const {
+  Client,
+  GatewayIntentBits
 } = require('discord.js');
 
 const fetch = require('node-fetch');
@@ -16,10 +16,24 @@ client.on('interactionCreate', async (interaction) => {
 
   // ✅ AUTOCOMPLETE
   if (interaction.isAutocomplete()) {
-    const focusedValue = interaction.options.getFocused().toLowerCase();
+    let focusedValue = interaction.options.getFocused();
+
+    if (!focusedValue || typeof focusedValue !== "string") {
+      focusedValue = "";
+    }
+
+    focusedValue = focusedValue.toLowerCase();
 
     try {
-      const res = await fetch(`${API_URL}?q=${encodeURIComponent(focusedValue)}`);
+      // Do not call API if user has not typed anything
+      if (!focusedValue.trim()) {
+        return await interaction.respond([]);
+      }
+
+      const res = await fetch(
+        `${API_URL}?q=${encodeURIComponent(focusedValue)}`
+      );
+
       const text = await res.text();
 
       let data;
@@ -27,25 +41,32 @@ client.on('interactionCreate', async (interaction) => {
         data = JSON.parse(text);
       } catch {
         console.error("Autocomplete did not return JSON:", text);
-        return interaction.respond([]);
+        return await interaction.respond([]);
       }
 
       if (!Array.isArray(data)) {
         console.error("Autocomplete returned non-array:", data);
-        return interaction.respond([]);
+        return await interaction.respond([]);
       }
 
       const choices = data
         .map(item => item.item)
+        .filter(Boolean)
         .slice(0, 25);
 
-      return interaction.respond(
-        choices.map(choice => ({ name: choice, value: choice }))
+      return await interaction.respond(
+        choices.map(choice => ({
+          name: String(choice).slice(0, 100),
+          value: String(choice).slice(0, 100)
+        }))
       );
 
     } catch (err) {
-      console.error(err);
-      return interaction.respond([]);
+      console.error("Autocomplete error:", err);
+
+      try {
+        return await interaction.respond([]);
+      } catch {}
     }
   }
 
@@ -56,26 +77,39 @@ client.on('interactionCreate', async (interaction) => {
     const item = interaction.options.getString('item');
 
     try {
-      const res = await fetch(`${API_URL}?item=${encodeURIComponent(item)}`);
+      await interaction.deferReply();
+
+      const res = await fetch(
+        `${API_URL}?item=${encodeURIComponent(item)}`
+      );
+
       const data = await res.json();
 
       if (data.error) {
-        return interaction.reply({
-          content: "Item not found",
-          ephemeral: true
+        return await interaction.editReply({
+          content: "Item not found"
         });
       }
 
-      return interaction.reply(
+      return await interaction.editReply(
         `${data.item} price range is ${data.min} - ${data.max} (last updated: ${data.lastUpdate})`
       );
 
     } catch (err) {
-      console.error(err);
-      interaction.reply({
-        content: "Error contacting API",
-        ephemeral: true
-      });
+      console.error("Slash command error:", err);
+
+      try {
+        if (interaction.deferred || interaction.replied) {
+          return await interaction.editReply({
+            content: "Error contacting API"
+          });
+        }
+
+        return await interaction.reply({
+          content: "Error contacting API",
+          ephemeral: true
+        });
+      } catch {}
     }
   }
 });
